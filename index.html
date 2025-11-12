@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Budget Planner</title>
+<style>
+    * {
+  box-sizing: border-box;
+    }
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f4f4;
+    margin: 0;
+    padding: 20px;
+  }
+  .container {
+    max-width: 600px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    margin: 0 auto;
+  }
+  input, button {
+    padding: 10px;
+    margin: 5px 0;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    font-size: 16px;
+  }
+ 
+  button {
+    background: #007bff;
+    color: white;
+    border: none;
+    cursor: pointer;
+  }
+  button:hover {
+    background: #0056b3;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+  }
+  th, td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+  }
+  .remaining {
+    font-weight: bold;
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h2>Yearly Budget Planner</h2>
+
+  <div id="budgetSetup">
+  <input type="number" id="yearlyBudget" placeholder="Enter yearly budget ($)" />
+  <button onclick="setBudget()">Set Budget</button>
+</div>
+<button id="changeBudgetBtn" style="display:none; margin-bottom:10px;" onclick="showBudgetInput()">Change Budget</button>
+
+    <input type="text" id="productName" placeholder="Product name" />
+    <input type="number" id="productPrice" placeholder="Price ($)" />
+    <button onclick="addPurchase()">Add Purchase</button></button>
+
+
+
+  <div class="remaining">Remaining Budget: $<span id="remainingBudget">0</span></div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Price ($)</th>
+        <th>Date</th>
+      </tr>
+    </thead>
+    <tbody id="purchaseList"></tbody>
+  </table>
+</div>
+
+<script>
+  let budget = parseFloat(localStorage.getItem('yearlyBudget')) || 0;
+  let remaining = parseFloat(localStorage.getItem('remainingBudget')) || budget;
+  let purchases = JSON.parse(localStorage.getItem('purchases')) || [];
+
+  document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('remainingBudget').innerText = remaining.toFixed(2);
+    if (budget > 0) {
+      document.getElementById('budgetSetup').style.display = 'none';
+      document.getElementById('changeBudgetBtn').style.display = 'block';
+    }
+    renderPurchases();
+  });
+
+  function setBudget() {
+    const value = parseFloat(document.getElementById('yearlyBudget').value);
+    if (!value || value <= 0) return alert('Enter a valid budget');
+
+    budget = value;
+    remaining = value - getTotalSpent();
+
+    localStorage.setItem('yearlyBudget', budget);
+    localStorage.setItem('remainingBudget', remaining);
+
+    document.getElementById('remainingBudget').innerText = remaining.toFixed(2);
+
+    document.getElementById('budgetSetup').style.display = 'none';
+    document.getElementById('changeBudgetBtn').style.display = 'block';
+  }
+
+  function getTotalSpent() {
+    return purchases.reduce((sum, item) => sum + item.price, 0);
+  }
+
+  function addPurchase() {
+    const name = document.getElementById('productName').value;
+    const price = parseFloat(document.getElementById('productPrice').value);
+
+    if (!name || !price || price <= 0) return alert('Enter valid product and price');
+    if (remaining - price < 0) return alert('Not enough budget remaining');
+
+    const date = new Date().toLocaleDateString();
+    const item = { name, price, date };
+
+    purchases.push(item);
+    remaining -= price;
+
+    localStorage.setItem('purchases', JSON.stringify(purchases));
+    localStorage.setItem('remainingBudget', remaining);
+
+    document.getElementById('remainingBudget').innerText = remaining.toFixed(2);
+    renderPurchases();
+
+    document.getElementById('productName').value = '';
+    document.getElementById('productPrice').value = '';
+  }
+
+  function deletePurchase(index) {
+    const price = purchases[index].price;
+    purchases.splice(index, 1);
+    remaining += price;
+
+    localStorage.setItem('purchases', JSON.stringify(purchases));
+    localStorage.setItem('remainingBudget', remaining);
+
+    document.getElementById('remainingBudget').innerText = remaining.toFixed(2);
+    renderPurchases();
+  }
+
+  function showBudgetInput() {
+    document.getElementById('budgetSetup').style.display = 'block';
+    document.getElementById('changeBudgetBtn').style.display = 'none';
+  }
+
+  function renderPurchases() {
+    const list = document.getElementById('purchaseList');
+    list.innerHTML = '';
+    purchases.forEach((item, index) => {
+      list.innerHTML += `<tr>
+        <td>${item.name}</td>
+        <td>${item.price.toFixed(2)}</td>
+        <td>${item.date}</td>
+        <td><button onclick="deletePurchase(${index})">Delete</button></td>
+      </tr>`;
+    });
+  }
+</script>
+</body>
+</html>
